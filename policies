@@ -1,0 +1,38 @@
+Disable-MobileHotspot.ps1
+
+<#
+.SYNOPSIS
+Disables Windows Mobile Hotspot and Internet Connection Sharing (ICS).
+
+.DESCRIPTION
+Implements a security control that prevents users from enabling
+Mobile Hotspot or Internet Connection Sharing on domain-joined systems.
+
+This aligns with enterprise endpoint configuration enforcement principles.
+
+.NOTES
+Requires Administrator privileges.
+#>
+
+try {
+    Write-Host "Applying Mobile Hotspot restriction on $env:COMPUTERNAME..." -ForegroundColor Cyan
+
+    $regPath = "HKLM:\Software\Policies\Microsoft\Windows\Network Connections"
+
+    # Ensure policy registry path exists
+    if (!(Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+
+    # Hide Internet Connection Sharing UI
+    Set-ItemProperty -Path $regPath -Name "NC_ShowSharedAccessUI" -Value 0 -Type DWord
+
+    # Stop and disable SharedAccess service
+    Stop-Service -Name SharedAccess -Force -ErrorAction SilentlyContinue
+    Set-Service -Name SharedAccess -StartupType Disabled
+
+    Write-Host "Mobile Hotspot successfully disabled." -ForegroundColor Green
+}
+catch {
+    Write-Host "Error applying configuration: $_" -ForegroundColor Red
+}
